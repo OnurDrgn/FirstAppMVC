@@ -1,5 +1,8 @@
-﻿using FirstApp.Models;
+﻿using FirstApp.Context;
+using FirstApp.Entity;
+using FirstApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace FirstApp.Controllers
@@ -7,45 +10,37 @@ namespace FirstApp.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly DatabeseContext _dbContext;
+        private readonly DbSet<Slider> _dataSet;
 
-        public HomeController(ILogger<HomeController> logger)
+
+
+        public HomeController(ILogger<HomeController> logger, DatabeseContext dbContext)
         {
             _logger = logger;
+            _dbContext = dbContext;
+            _dataSet = dbContext.Set<Slider>();
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var getSlider = await _dataSet.ToListAsync<Slider>();
+
             var sliderList = new HomePageModel
             {
-                HomePageSlider = new List<HomePageSliderModel>
-                {
-                    new HomePageSliderModel
-                    {
-                        Order = 1,
-                        Title = "Deneme 1",
-                        Description = "Deneme Açıklama 1",
-                        Image = "/img/hero-carousel/hero-carousel-1.jpg",
-                        Active = true
-                    },
-                    new HomePageSliderModel
-                    {
-                        Order = 2,
-                        Title = "Deneme 2",
-                        Description = "Deneme Açıklama 2",
-                        Image = "/img/hero-carousel/hero-carousel-2.jpg",
-                        Active = false
-                    },
-                    new HomePageSliderModel
-                    {
-                        Order = 3,
-                        Title = "Deneme 3",
-                        Description = "Deneme Açıklama 3",
-                        Image = "/img/hero-carousel/hero-carousel-3.jpg",
-                        Active = false
-                    }
-                }
+                HomePageSlider = getSlider
+            };
+            var modelSlider = new Slider
+            {
+                Order = 2,
+                Title = "Deneme 2",
+                Description = "Deneme Açıklama 2",
+                Image = "/img/hero-carousel/hero-carousel-2.jpg",
+                Active = true
             };
 
+            //await AddSliderAsync(modelSlider);
+            await DeleteSliderAsync(getSlider.Find(x => !x.Active));
             return View(sliderList);
         }
 
@@ -75,6 +70,23 @@ namespace FirstApp.Controllers
 
             return View(modelList);
         }
+
+        public async Task<bool> AddSliderAsync(Slider model)
+        {
+            await _dbContext.AddAsync<Slider>(model);
+
+            var response = await _dbContext.SaveChangesAsync() > 0;
+            return response;
+        }
+
+        public async Task<bool> DeleteSliderAsync(Slider model)
+        {
+            _dbContext.Remove<Slider>(model);
+
+            var response = await _dbContext.SaveChangesAsync() > 0;
+            return response;
+        }
+
 
         public IActionResult Privacy()
         {
